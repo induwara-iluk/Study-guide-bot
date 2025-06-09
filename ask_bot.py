@@ -1,23 +1,19 @@
+import google.generativeai as genai
 import faiss
 import pickle
 from sentence_transformers import SentenceTransformer
 from transformers import pipeline
-
-# Load embedding model
 embedder = SentenceTransformer('all-MiniLM-L6-v2')
-
 # Load FAISS index and chunks
 index = faiss.read_index("ugc_index.faiss")
 with open("ugc_chunks.pkl", "rb") as f:
     chunks = pickle.load(f)
 
+# Initialize Google Generative AI
 
-
-qa_model = pipeline(
-    "text-generation",
-    model="tiiuae/falcon-7b-instruct",
-  # CPU fallback
-)
+genai.configure(api_key="AIzaSyAhx7IRQ1DsgAM87rDAC17e9MajXsUurdA")  # Use `getpass` or env var for safety
+model = genai.GenerativeModel("models/gemini-1.5-flash")
+chat = model.start_chat(history=[])
 
 
 def ask_ugc_bot(question, k=5):
@@ -27,9 +23,10 @@ def ask_ugc_bot(question, k=5):
     # Combine relevant chunks
     context = "\n\n".join([chunks[i] for i in indices[0]])
 
+    # Build prompt
     prompt = f"""
 You are a helpful assistant for students seeking university admission in Sri Lanka.
-Answer the question clearly using only the following UGC Handbook context:
+Use the following context from the UGC Handbook to answer clearly and concisely.
 
 Context:
 {context}
@@ -38,5 +35,12 @@ Question:
 {question}
 """
 
-    result = qa_model(prompt, max_new_tokens=200)[0]["generated_text"]
-    return result.strip()
+    # Send prompt to Gemini
+    response = chat.send_message(prompt)
+    return response.text.strip()
+
+chat.send_message("""
+You are a helpful and precise assistant for university admission questions in Sri Lanka.
+You must only answer using context from the UGC Handbook provided.
+Avoid guessing or adding extra knowledge. If unsure, say so.
+""")
