@@ -16,7 +16,7 @@ model = genai.GenerativeModel("models/gemini-1.5-flash")
 chat = model.start_chat(history=[])
 
 
-def ask_ugc_bot(question, k=5):
+def ask_ugc_bot(question, k=20):
     question_embedding = embedder.encode([question])
     distances, indices = index.search(question_embedding, k)
 
